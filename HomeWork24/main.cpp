@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstring>
 #include <windows.h>
+#include "Playlist.h"
 
 using namespace std;
 
@@ -114,24 +115,89 @@ int main()
     SetConsoleOutputCP(65001);
     SetConsoleCP(65001);
 
+    //РІВЕНЬ 1
+    Playlist morning("Meshuggah");
+
+    morning.add(442);
+    morning.add(372);
+    morning.add(274);
+    morning.add(-5);
+    morning.print();
+
+    const Playlist favorite = morning;    
+    cout << "morning set duration: ";
+    morning.printFormatedDuration(morning.getTotalSeconds());
+    cout << endl;
+    cout << "favorite set duration: ";
+    favorite.printFormatedDuration(favorite.getTotalSeconds());
+    cout << endl;
+    //favorite.add(100);     Не компилируется, потому что константный объект может использовать только константные методы
+
+    Playlist::printSummary(morning);
+    Playlist::printSummary(favorite);
+
+    //РІВЕНЬ 2
+    Playlist workout = morning;
+    Playlist backup(morning);
+    workout.setName("Workout");
+    workout.add(444);
+    cout << "Переконайтеся, що morning і backup не змінилися." << endl;
+    morning.print();
+    backup.print();
+
+    cout << endl << "Вызов printCopy(morning)" << endl;
+    Playlist::printCopy(morning);
+    cout << "Проверка morning на изменения: " << endl;
+    morning.print();
+    // Копия была создана, когда мы передали объект в качестве аргумента в printCopy без &
+    // Уничтожается копия сразу после окончания блока кода метода
+    // В morning песня не была добавлена. Поскольку в методе произошло копирование, она добавилась в копию
+
+    cout << endl;
+    Playlist::printSummary(Playlist("Вечірня"));
+    Playlist::printSummary(Playlist::longer(morning, workout));
+
+    //РІВЕНЬ 3
+    Playlist mix = Playlist::combine(morning, workout);
+    Playlist::printSummary(mix);
+    morning.print();
+    workout.print();
+
+
     return 0;
 }
 
 /*
   ВІДПОВІДІ НА ЧАСТИНУ «ПОЯСНИ»
 
-  1.
+  1. Чому getTotalSeconds можна зробити константним, а add — ні?
+     Потому что константные методы не могут ничего изменять в объекте
 
-  2.
+  2. Який тип має покажчик this всередині print? Що через це НЕ можна робити в print?
+     this имеет тип const Playlist. Это значит, что мы не можем использовать методы-модификаторы
+     А так же использовать не константные методы
 
-  3.
+  3. Чому getName повертає const char*, а не char*? Що можна було б зробити з константним плейлистом, якби повертався char*?
+     Это нужно для защиты поля от изменений. Указатель на char* позволяет менять данные внутри. Константный плейлист перестаёт быть константным
 
-  4.
+  4. Що станеться, якщо в конструкторі копіювання замість виділення нової пам'яті написати  durations = other.durations; ?
+     Коли саме програма «зламається»?
+     Тогда у двух объектов будет одно общее поле. Программа может сломаться, когда один из объектов будет удалён деконструктором
+     Или когда один из объектов будет изменён методом add() и после этого durations будет общий, а count изменится только у объекта, вызывавшего add()
 
-  5.
+  5. (Рівень 2) Що ви побачили у виводі при виклику printCopy(morning)? Чому пісня на 60 секунд не з'явилася в morning?     
+     При вызове printCopy(morning) увидели, что была создана копия объекта. В нём были сделаны изменения и, после выхода из метода, объект был удалён деконструктором
 
-  6.
+     Чому printSummary приймає const Playlist&, а не Playlist?
+     const, потому что мы не хотим передаваемый плейлист изменять внутри метода
+     &, потому что хотим обращаться к объекту по ссылке, а не создавать его копию
 
-  7.
+  6. (Рівень 2) Що відбувалося в п. 3 (викликати printSummary("Вечірня") БЕЗ explicit)? Які конструктори і деструктори викликалися і коли?
+     Был вызван конструктор Playlist(const char* name) нового объекта и при выходе из метода printSummary() вызван его деконструктор
 
+  7. (Рівень 2) Чому конструктор копіювання не роблять explicit? Назвіть рядок вашого main, який тоді перестав би компілюватися.
+     Потому что тогда перестанет работать оператор копирования '=' и нельзя будет передавать объект в функцию, если она копирует объект, а не принимает ссылку на него
+     Примеры строк, которые перестанут работать:
+     Playlist workout = morning;
+     Playlist::printCopy(morning);
 */
